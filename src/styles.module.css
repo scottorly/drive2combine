@@ -1,0 +1,19 @@
+@import 'prismjs/themes/prism-okaidia.css';
+@import 'prismjs/plugins/line-highlight/prism-line-highlight.css';
+@import 'prismjs/plugins/line-numbers/prism-line-numbers.css';
+
+.small {
+  @apply text-sm
+}
+
+.code {
+  @apply w-full
+}
+
+pre[class*="language-"] { 
+  @apply overflow-hidden
+}
+
+.line-highlight::before, .line-highlight[data-end]::after {
+  box-shadow: none;
+}
