@@ -2,21 +2,22 @@ import './tufte.module.css'
 import styles from './styles.module.css'
 import Prism from 'prismjs'
 import 'prismjs/plugins/line-highlight/prism-line-highlight'
-
 import 'prismjs/components/prism-swift'
 
-{/* <meta name="Description" content="Drive II: Combine, Functional Reactive Programming with Combine & UIKit by Scott Orlyck">
-<meta name="twitter:title" content="Drive II: Combine">
-<meta name="twitter:description" content="">
-<meta name="twitter:image" content="">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:site" content="">
-<meta name="twitter:creator" content="@orlyck">
-<meta property="og:url" content="">
-<meta property="og:title" content="Drive">
-<meta property="og:description" content="">
-<meta property="og:image" content="">
-<meta property="og:image:secure" content=""> */}
+const metas = <>
+    <meta name="Description" content="Drive II: Combine, Functional Reactive Programming with Combine & UIKit by Scott Orlyck"/>
+    <meta name="twitter:title" content="Drive II: Combine"/>
+    <meta name="twitter:description" content=""/>
+    <meta name="twitter:image" content=""/>
+    <meta name="twitter:card" content="summary_large_image"/>
+    <meta name="twitter:site" content=""/>
+    <meta name="twitter:creator" content="@orlyck"/>
+    <meta property="og:url" content=""/>
+    <meta property="og:title" content="Drive"/>
+    <meta property="og:description" content=""/>
+    <meta property="og:image" content=""/>
+    <meta property="og:image:secure" content=""/>
+</>
 
 const Code = ({ children, attributes: { snippet, dataline }}) => (
     <figure>
@@ -37,34 +38,39 @@ const Link = ({ children, attributes: { href }}) => (
      </a>
 )
 
-const MarginNote = ({ children }) => (
-    <>
-        <label for="mn-demo" className="margin-toggle">&#8853;</label>
-        <input type="checkbox" id="mn-demo" className="margin-toggle"/>
+let marginNoteId = 0
+let sideNoteId = 0
+
+const MarginNote = ({ children }) => {
+    marginNoteId++
+    return (<>
+        <label for={marginNoteId} className="margin-toggle">&#8853;</label>
+        <input type="checkbox" id={marginNoteId} className="margin-toggle"/>
         <span className="marginnote">
             { children }
         </span>
-    </>
-)
+    </>)
+}
 
-const SideNote = ({ children }) => (
-    <>
-        <label for="sn-demo" className="margin-toggle sidenote-number"/>
-        <input type="checkbox" id="sn-demo" className="margin-toggle"/>
-        <span className="sidenote">
-            { children }
-        </span>
-    </>
-)
+const SideNote = ({ children }) => {
+    sideNoteId++
+    return <>
+            <label for={`${sideNoteId}a`} className="margin-toggle sidenote-number"/>
+            <input type="checkbox" id={`${sideNoteId}a`} className="margin-toggle"/>
+            <span className="sidenote">
+                { children }
+            </span>
+        </>
+}
 
 const blog = (
     <article>
         <section>
             <h1>
-                Drive II: Combine
+                DRIVE II: COMBINE
             </h1>
             <p className="subtitle">
-                <a href='https://linktr.ee/orlyck'>Scott Orlyck</a>
+                <a href='https://scottorly.github.io'>Scott Orlyck</a>
             </p>
         </section>
 
@@ -76,135 +82,77 @@ const blog = (
         <section>
 
             <p>
-                <span className='newthought'>In our <Link href="https://scottorly.github.io/drive-blog">last episode</Link></span>, we implemented some practical UI techniques using Rx<SideNote><Link href="https://en.wikipedia.org/wiki/ReactiveX">ReactiveX</Link>: Reactive Programming Extensions</SideNote> with RxSwift's <Link href="https://github.com/ReactiveX/RxSwift/blob/main/Documentation/Traits.md#driver">Driver Trait</Link> and UIKit. 
+                <span className='newthought'>In our <Link href="https://scottorly.github.io/drive">last episode</Link></span>, we implemented some practical iOS UI programming techniques using RxSwift's <Link href="https://github.com/ReactiveX/RxSwift/blob/main/Documentation/Traits.md#driver">Driver trait</Link> and UIKit. This time we are going to explore some of the same patterns using Apple's Swift Reactive Programming framework <Link href="https://developer.apple.com/documentation/combine">Combine</Link>. Implemented with discipline, Rx based architectures can help you avoid smelly anti-patterns like half-cooked spagehetti<SideNote>Not enough seperation of concerns.</SideNote> or over-cooked lasgna<SideNote>Too much seperation of concerns.</SideNote>, but it is not without it's costs. One of the biggest problems with Rx architectures is the steep learning curve of not only the reactive language extensions themselves but also learning to reason about the system as an declarative stream of events and data. Lucky for us then that Combine adds some much needed developer ergonomics to reactive extensions that makes things a lot easier when operating on publishers across API boundaries.
             </p>
-            <p>
-                Below we are going to explore some of the same patterns (and a few new ones) using Apple's Swift Reactive Programming framework <Link href="https://developer.apple.com/documentation/combine">Combine</Link>. The compiler magic Apple has baked into Xcode add welcome ergonomics to the otherwise frustrating climb up the Rx learning curve. Rx based architectures can be a powerful tool to facilitate clean architecture so you can avoid half-cooked spagehetti<SideNote>Not enough seperation of concerns</SideNote> or over-cooked lasgna<SideNote>Too many seperation of concerns</SideNote> and maybe we'll find that Combine leads to cleaner and simpler code than RxSwift.
-            </p>
-
         </section>
 
         <section>
-            <h2>The Return of the Driver</h2>
+            <h2>THE RETURN OF THE DRIVER</h2>
+    <p><MarginNote>Find the source code for a project with working examples  <Link href='https://github.com/scottorly/drive2combine/tree/main/xcode'>here</Link>.</MarginNote></p>
             <p>
-                If you recall RxSwift's Driver trait is a guarantee that the publisher is shared, the subscription is always received on the main thread and the publisher can never error out. It is instructive to think about Drivers as UI or system events "driving the application".
+                If you recall, RxSwift's <Link href="https://github.com/ReactiveX/RxSwift/blob/main/Documentation/Traits.md#driver">Driver Trait</Link> is a guarantee that the publisher is shared with the last element replayed upon subscription, the subscription is always received on the main thread, and the publisher can never error out. It is instructive to think about Drivers as UI or system events "driving the application".
             </p>
-            <p>
 
+            <p>
+                One of the main driver's<SideNote>I am so sorry.</SideNote> of the RxSwift Driver trait was to help make dealing with type inference across API boundaries less problematic. This is problem is solved with Combine's convenient <Link href={`https://developer.apple.com/documentation/combine/just/erasetoanypublisher()`}>eraseToAnyPublisher</Link> API. 
             </p>
+
+            <p>
+                Below is a simple extension to Publisher to fulfill our requirements for a Driver.
+            </p>
+
             <Code snippet={`import Combine
 import CombineExt
                 
 typealias Driver<T> = AnyPublisher<T, Never>
 
 extension Publisher {
+    func driver() -> Driver<Output> {
+        \`catch\` { error -> AnyPublisher<Output, Never> in
+            Empty(completeImmediately: true).eraseToAnyPublisher()
+        }
+        .share(replay: 1)
+        .receive(on: RunLoop.main)
+        .eraseToAnyPublisher()
+    }
+}`} dataline={'8-12'}>
+                <MarginNote id='b'>
+                    Lines 8-9: Catch and return an Empty publisher to convert the error type to Never.
+                    <br />
+                    Line 11: Share and replay the last element.
+                    <br />
+                    Line 12: Receive on the main thread.
+                </MarginNote>
+            </Code>
+            <Code snippet={`extension Publisher {
     func driver(onErrorReturn: Output) -> Driver<Output> {
         \`catch\` { error -> AnyPublisher<Output, Never> in
             Just(onErrorReturn).eraseToAnyPublisher()
         }
         .share(replay: 1)
-        .receive(on: RunLoop.main, options: nil)
+        .receive(on: RunLoop.main)
         .eraseToAnyPublisher()
     }
 }`} 
-                dataline={'4,6,7,8,11,12'} >
-                    <MarginNote>Line 4: Typealias declaration. 
-                        <br />
-                        Line 6: Catch and return an Empty publisher to convert the error type to Never.
-                        <br />
-                        Line 7: Parameter to return if there instead of an error when replacing the error type.
-                        <br/>
-                        Line 8: Note the use of backticks in the function name.
-                        <br/>
-                        Line 11: Share with replay of 1.
-                        <br />
-                        Line 12: Receive downstream subscriptions on the main thread.
+                 dataline={'4'}>
+                    <MarginNote>If you want to provide a default value to the driver function wrap the default value parameter in a Just publisher instead of returning an Empty publisher.
                     </MarginNote>
                 </Code>
-            <Code snippet={`extension Publisher {
-
-    func driver() -> Driver<Output> {
-        \`catch\` { error -> AnyPublisher<Output, Never> in
-            Empty(completeImmediately: true).eraseToAnyPublisher()
-        }
-        .share()
-        .receive(on: RunLoop.main, options: nil)
-        .eraseToAnyPublisher()
-    }
-}`} 
-                dataline={'4,6,7,11'} >
-                    <MarginNote>Line 4: Typealias declaration. 
-                        <br />
-                        Line 6: Catch and return an Empty publisher to convert the error type to Never.
-                        <br />
-                        Line 7: Note the use of backticks in the function name.
-                        <br/>
-                        Line 11:
-                        <br />
-                        Line 12:
-                    </MarginNote>
-                </Code>
+           
         </section>
 
+
         <section>
-            <h2>
-                <Link href="https://developer.apple.com/documentation/uikit/uitableviewdiffabledatasource">
-                    Diffable Datasources
-                </Link>
-            </h2>
-
+            <h2>DONT CALL IT MVVM THIS IS MVVMVC</h2>
             <p>
-                For this tutorial we are going to explore another new iOS platform component that can help simplify our collection views especially handling datasources updates without the dreaded inconsistency crash.
+                One of the really nice things about Combine when compared to RxSwift is that the API is much simpler than RxSwift's. The simplicity does introduce a drawback however - we need to import CombineExt to provide some operators missing from Combine in order to use Combine with UIKit effectively. Nonetheless our code is going to look a lot cleaner thanks to the integration with Foundation. As with RxSwift and RxCocoa Apple does not provide default publishers for UIKit control events so we will need to add CombineCocoa to our project as well.
             </p>
-
             <p>
-               
-               
-               
-                Available in iOS 13 and above, Diffable Datasources can be used with UITableView and UICollectionView and are much cleaner implementations than the overly verbose traditional datasource and delegate methods.
+                Take a look at the ViewModel implementation below as now is a good time to review some rules<SideNote>The ViewModel cannot import UIKit and will never subscribe to any publishers.</SideNote> to help enforce seperation of concerns and prevent side effects.
             </p>
+            <Code snippet={`import CombineExt
 
-            <Code snippet={`import UIKit
-
-typealias Datasource = UITableViewDiffableDataSource<Int, Post>
-typealias Snapshot = NSDiffableDataSourceSnapshot<Int, Post>
-`
-                }>
-                    <MarginNote>Assign the datasource property to the UITableView and create a new snapshot appending a new section and a new item to the section.</MarginNote> 
-                </Code>
-
-            <p>
-                Now we can setup our datasource and load some test items.
-            </p>
-
-            <Code snippet={`class ViewController: UIViewController {
-
-    @IBOutlet weak var tableView: UITableView!
-
-    lazy var datasource: Datasource = {
-        Datasource(tableView: tableView) { tableView, indexPath, item in
-            tableView.dequeueReusableCell(withIdentifier: "CELL")
-        }
-    }()
-}`
-             }>
-                <MarginNote>Assign the datasource property to the UITableView and create a new snapshot appending a new section and a new item to the section.</MarginNote> 
-            </Code>
-
-            <Code snippet={`class ViewController: UIViewController {
-    func viewDidLoad() {
-        super.viewDidLoad()
-        tableView.datasource = datasource
-        var snapshot = 
-    }
-}`
-        }>
-            <MarginNote>Assign the datasource property to the UITableView and create a new snapshot appending a new section and a new item to the section.</MarginNote> 
-        </Code>
-
-        </section>
-        <section>
-            <Code snippet={`class ViewModel {
+class ViewModel {
 
     //MARK: - OUTPUTS
     let validatedUsername: Driver<Validation>
@@ -219,30 +167,53 @@ typealias Snapshot = NSDiffableDataSourceSnapshot<Int, Post>
         login: AnyPublisher<Void, Never>
     ) {
 
-        validatedUsername = login.withLatestFrom(username).flatMapLatest {
+        validatedUsername = username.flatMapLatest {
             Validator.shared.username(username: $0)
-        }.driver()
+        }.driver(onErrorJustReturn: .failed("Invalid username."))
 
-        validatedPassword = login.withLatestFrom(password).flatMapLatest {
+        validatedPassword = password.flatMapLatest {
             Validator.shared.password(password: $0)
-        }.driver()
+        }.driver(onErrorJustReturn: .failed("Invalid password"))
 
-        enabled = Publishers.CombineLatest(validatedUsername, validatedPassword)
-        .flatMapLatest { username, password -> Driver<Bool> in
+        let combined = Publishers.CombineLatest(validatedUsername, validatedPassword)
+
+        enabled = combined.flatMapLatest { username, password -> Driver<Bool> in
             if case (.success, .success) = (username, password) {
-                return Just(true).driver()
+                return Just(true).eraseToAnyPublisher()
             }
-            return Just(false).driver()
-        }.driver()
+            return Just(false).eraseToAnyPublisher()
+        }.driver(onErrorJustReturn: false)
 
         loggedIn = login.withLatestFrom(Publishers.CombineLatest(username, password))
             .flatMapLatest {
                 Network.shared.login(username: $0, password: $1)
             }.eraseToAnyPublisher()
     }
-}`} dataline='1,8-14'>
-            <MarginNote>Assign the datasource property to the UITableView and create a new snapshot appending a new section and a new item to the section.</MarginNote>
-        
+}
+`} dataline=''>
+            <MarginNote>
+                <br />
+            </MarginNote>
+        </Code>
+        <p>
+
+        </p>
+        <Code snippet={`class ViewController: UIViewController {
+    
+    //MARK: - IBOutlets
+    @IBOutlet weak var username: UITextField!
+    @IBOutlet weak var password: UITextField!
+    @IBOutlet weak var login: UIButton!
+
+    lazy var viewModel: ViewModel = {
+        ViewModel(
+            username: username.textDriver(),
+            password: password.textDriver(),
+            login: login.tapPublisher)
+    }()
+
+}`}>
+            <MarginNote> </MarginNote> 
         </Code>
 
         <Code snippet={`func bind() {
@@ -268,14 +239,15 @@ typealias Snapshot = NSDiffableDataSourceSnapshot<Int, Post>
         }.store(in: &bag)
 
     viewModel.enabled.sink { [weak self] enabled in
-
+        self?.login.isEnabled = enabled
     }.store(in: &bag)
 
     viewModel.loggedIn.sink { [weak self] response in
-
+        if case .success = response {
+            self?.performSegue(withIdentifier: "LOGGEDIN", sender: nil)
+        }
     }.store(in: &bag)
-}
-        `}>
+}`}>
             <MarginNote> </MarginNote> 
         </Code>
         </section>

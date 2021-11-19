@@ -2,6 +2,7 @@
 
 import Foundation
 import Combine
+import CombineExt
 import UIKit.UITextField
 
 typealias Driver<T> = AnyPublisher<T, Never>
@@ -10,27 +11,28 @@ extension UITextField {
     func textDriver() -> Driver<String> {
         textPublisher
             .replaceNil(with: "")
-            .share()
-            .receive(on: RunLoop.main, options: nil)
+            .share(replay: 1)
             .eraseToAnyPublisher()
     }
 }
 
 extension Publisher {
+    //provide a default value to return on error
     func driver(onErrorJustReturn: Output) -> Driver<Output> {
-        `catch` { error -> AnyPublisher<Output, Never> in
-            Just(onErrorJustReturn).eraseToAnyPublisher()
+        `catch` { error -> Just<Output> in
+            Just(onErrorJustReturn)
         }
-        .share()
+        .share(replay: 1)
         .receive(on: RunLoop.main, options: nil)
         .eraseToAnyPublisher()
     }
 
+    //replace the error with an Empty publisher
     func driver() -> Driver<Output> {
-        `catch` { error -> AnyPublisher<Output, Never> in
-            Empty(completeImmediately: true).eraseToAnyPublisher()
+        `catch` { error -> Empty in
+            Empty(completeImmediately: true)
         }
-        .share()
+        .share(replay: 1)
         .receive(on: RunLoop.main, options: nil)
         .eraseToAnyPublisher()
     }

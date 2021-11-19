@@ -54,11 +54,13 @@ class ViewController: UIViewController {
             }.store(in: &bag)
 
         viewModel.enabled.sink { [weak self] enabled in
-
+            self?.login.isEnabled = enabled
         }.store(in: &bag)
 
         viewModel.loggedIn.sink { [weak self] response in
-
+            if case .success = response {
+                self?.performSegue(withIdentifier: "LOGGEDIN", sender: nil)
+            }
         }.store(in: &bag)
     }
     

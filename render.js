@@ -4,6 +4,7 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
 const { createServer } = require('vite');
+const { exit } = require('process');
 
 (async () => {
   const server = await createServer({
@@ -37,6 +38,7 @@ const { createServer } = require('vite');
 
   fs.writeFile('./docs/index.html', html, () => {
     server.close();
+    exit();
   });
 })()
 
