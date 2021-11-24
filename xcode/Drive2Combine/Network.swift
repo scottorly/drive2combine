@@ -14,7 +14,7 @@ class Network {
 
     func login(username: String, password: String) -> AnyPublisher<Response, Never> {
         AnyPublisher.create { subscription in
-            DispatchQueue.global().asyncAfter(deadline: .now() + 5) {
+            DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
                 subscription.send(.success)
             }
             return AnyCancellable {}

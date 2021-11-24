@@ -27,18 +27,29 @@ class ViewModel {
             Validator.shared.password(password: $0)
         }.driver(onErrorJustReturn: .failed("Invalid password"))
         
-        let combined = Publishers.CombineLatest(validatedUsername, validatedPassword)
+        let combined = Publishers
+            .CombineLatest(
+                validatedUsername,
+                validatedPassword
+            )
         
-        enabled = combined.flatMapLatest { username, password -> Driver<Bool> in
-            if case (.success, .success) = (username, password) {
-                return Just(true).eraseToAnyPublisher()
-            }
-            return Just(false).eraseToAnyPublisher()
-        }.driver(onErrorJustReturn: false)
-        
-        loggedIn = login.withLatestFrom(Publishers.CombineLatest(username, password))
+        enabled = combined
+            .flatMapLatest { username, password -> Just<Bool> in
+                if case (.success, .success) = (username, password) {
+                    return Just(true)
+                }
+                return Just(false)
+            }.driver(onErrorJustReturn: false)
+
+        let combinedCredentials = Publishers
+            .CombineLatest(
+                username,
+                password
+            )
+
+        loggedIn = login.withLatestFrom(combinedCredentials)
             .flatMapLatest {
                 Network.shared.login(username: $0, password: $1)
-            }.eraseToAnyPublisher()
+            }.driver()
     }
 }

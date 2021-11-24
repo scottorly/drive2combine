@@ -9,16 +9,14 @@ code[class*='language-'],
 pre[class*='language-'] {
 	color: #d6e7ff;
 	background: #030314;
-	text-shadow: none;
-	font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
-	font-size: 1em;
-	line-height: 1.5;
-	letter-spacing: .2px;
+	font-family: Consolas, Menlo, Monaco, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", "Courier New", Courier, monospace;
+	font-size: 14px;
+	line-height: 1.375;
+	direction: ltr;
+	text-align: left;
 	white-space: pre;
 	word-spacing: normal;
 	word-break: normal;
-	word-wrap: normal;
-	text-align: left;
 
 	-moz-tab-size: 4;
 	-o-tab-size: 4;
@@ -46,7 +44,7 @@ code[class*='language-'] ::selection {
 pre[class*='language-'] {
 	border: 1px solid #2a4555;
 	border-radius: 5px;
-	padding: 1.5em 1em;
+
 	margin: 1em 0;
 	overflow: auto;
 }

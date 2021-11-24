@@ -1,6 +1,7 @@
 'use strict';
 
 const puppeteer = require('puppeteer');
+const minify = require('html-minifier').minify;
 const path = require('path');
 const fs = require('fs');
 const { createServer } = require('vite');
@@ -33,10 +34,11 @@ const { exit } = require('process');
   });
 
   const html = await page.content();
-  console.log(html)
+  const minified = minify(html)
+  console.log(minified)
   await browser.close();
 
-  fs.writeFile('./docs/index.html', html, () => {
+  fs.writeFile('./docs/index.html', minified, () => {
     server.close();
     exit();
   });

@@ -24,7 +24,7 @@ class ViewController: UIViewController {
     }()
     
     //trusty dispose bag
-    var bag: Set<AnyCancellable> = Set()
+    var bag = Bag()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -32,6 +32,12 @@ class ViewController: UIViewController {
     }
     
     func bind() {
+
+        login.tapPublisher.sink { [weak self] _ in
+            self?.login.isEnabled = false
+            self?.activity.startAnimating()
+        }.store(in: &bag)
+
         viewModel.validatedUsername
             .sink { [weak self] validation in
                 if case .failed(let message) = validation {
@@ -58,6 +64,8 @@ class ViewController: UIViewController {
         }.store(in: &bag)
 
         viewModel.loggedIn.sink { [weak self] response in
+            self?.login.isEnabled = true
+            self?.activity.stopAnimating()
             if case .success = response {
                 self?.performSegue(withIdentifier: "LOGGEDIN", sender: nil)
             }

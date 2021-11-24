@@ -20,16 +20,18 @@ const metas = <>
 </>
 
 const Code = ({ children, attributes: { snippet, dataline }}) => (
-    <figure>
-        { children }
-        <p className={styles.small}>
+<>
+    <p>
+        {children}
+    </p>
+    <figure className={styles.small}>
             <pre data-line={dataline} >
                 <code className={`${styles.code} language-swift`}>
                     { snippet }
                 </code>
             </pre>
-        </p>
     </figure>
+</>
 )
 
 const Link = ({ children, attributes: { href }}) => (
@@ -82,7 +84,9 @@ const blog = (
         <section>
 
             <p>
-                <span className='newthought'>In our <Link href="https://scottorly.github.io/drive">last episode</Link></span>, we implemented some practical iOS UI programming techniques using RxSwift's <Link href="https://github.com/ReactiveX/RxSwift/blob/main/Documentation/Traits.md#driver">Driver trait</Link> and UIKit. This time we are going to explore some of the same patterns using Apple's Swift Reactive Programming framework <Link href="https://developer.apple.com/documentation/combine">Combine</Link>. Implemented with discipline, Rx based architectures can help you avoid smelly anti-patterns like half-cooked spagehetti<SideNote>Not enough seperation of concerns.</SideNote> or over-cooked lasgna<SideNote>Too much seperation of concerns.</SideNote>, but it is not without it's costs. One of the biggest problems with Rx architectures is the steep learning curve of not only the reactive language extensions themselves but also learning to reason about the system as an declarative stream of events and data. Lucky for us then that Combine adds some much needed developer ergonomics to reactive extensions that makes things a lot easier when operating on publishers across API boundaries.
+                <span className='newthought'>In our <Link href="https://scottorly.github.io/drive">last episode</Link></span>, we implemented some practical iOS UI programming techniques using RxSwift's <Link href="https://github.com/ReactiveX/RxSwift/blob/main/Documentation/Traits.md#driver">Driver trait</Link> and UIKit. This time we are going to explore some of the same patterns using Apple's reactive programming framework <Link href="https://developer.apple.com/documentation/combine">Combine</Link>. Implemented with discipline, Rx based architectures can help you avoid smelly anti-patterns like half-cooked spagehetti<SideNote>Not enough seperation of concerns.</SideNote> or over-cooked lasgna<SideNote>Too much seperation of concerns.</SideNote>, but as with all things it comes with trade-offs.</p>
+                
+                <p>One of the biggest problems with Rx architectures is the steep learning curve of not only the reactive language extensions themselves but also learning to reason about the system as a declarative stream of events and data as opposed to imperative statefulness. Lucky for us then that Combine adds some much needed developer ergonomics to reactive extensions that makes things a lot easier when operating on publishers across API boundaries.
             </p>
         </section>
 
@@ -94,17 +98,19 @@ const blog = (
             </p>
 
             <p>
-                One of the main driver's<SideNote>I am so sorry.</SideNote> of the RxSwift Driver trait was to help make dealing with type inference across API boundaries less problematic. This is problem is solved with Combine's convenient <Link href={`https://developer.apple.com/documentation/combine/just/erasetoanypublisher()`}>eraseToAnyPublisher</Link> API. 
+                One of the main drivers<SideNote>I am so sorry.</SideNote> of the RxSwift Driver trait was to help make dealing with type inference across API boundaries less problematic. Combine's convenient <Link href={`https://developer.apple.com/documentation/combine/just/erasetoanypublisher()`}>eraseToAnyPublisher</Link> API makes this aspect of the driver trait redundant however it is instructive to walk through the implementation with Combine and the result leaves us with some easily re-usable Rx patterns.
             </p>
-
             <p>
-                Below is a simple extension to Publisher to fulfill our requirements for a Driver.
+                One of the nice things about Combine compared to RxSwift is that the API is much simpler. The primary drawback of this simplicity is that we will need to import CombineExt to provide some operators we need for this architecture pattern to be successful. Nonetheless our code is going to look a lot cleaner thanks to the Combine's integration with Foundation. Apple does not provide default publishers for UIKit control events so we will need to add CombineCocoa to our project as well.
             </p>
-
+            <p>
+                Below are two extensions to Publisher to fulfill our requirements for a Driver. The first demonstrates how to use an <Link href='https://developer.apple.com/documentation/combine/empty'>Empty</Link> publisher to convert a Publisher error type to Never.
+            </p>
             <Code snippet={`import Combine
 import CombineExt
                 
 typealias Driver<T> = AnyPublisher<T, Never>
+typealias Bag = Set<AnyCancellable>
 
 extension Publisher {
     func driver() -> Driver<Output> {
@@ -124,86 +130,118 @@ extension Publisher {
                     Line 12: Receive on the main thread.
                 </MarginNote>
             </Code>
-            <Code snippet={`extension Publisher {
-    func driver(onErrorReturn: Output) -> Driver<Output> {
-        \`catch\` { error -> AnyPublisher<Output, Never> in
-            Just(onErrorReturn).eraseToAnyPublisher()
-        }
-        .share(replay: 1)
-        .receive(on: RunLoop.main)
-        .eraseToAnyPublisher()
+
+        <Code snippet={`func driver(onErrorJustReturn: Output) -> Driver<Output> {
+    \`catch\` { error -> Just<Output> in
+        Just(onErrorJustReturn)
     }
+    .share(replay: 1)
+    .receive(on: RunLoop.main, options: nil)
+    .eraseToAnyPublisher()
 }`} 
-                 dataline={'4'}>
-                    <MarginNote>If you want to provide a default value to the driver function wrap the default value parameter in a Just publisher instead of returning an Empty publisher.
+                 dataline={'3'}>
+                    <MarginNote>If it makes more sense to provide a default value to the driver function wrap the default value parameter in a Just publisher instead of returning an Empty publisher.
                     </MarginNote>
                 </Code>
            
+                {/*  */}
+        <Code snippet={`extension UITextField {
+    func textDriver() -> Driver<String> {
+        textPublisher.replaceNil(with: "").driver()
+    }
+}`} dataline={'3'}>
+                    <MarginNote>One more extension for our UITextfield publisher so we don't have to worry about unwrapping optionals anywhere along our publisher chain.
+                    </MarginNote>
+                </Code>
         </section>
-
-
         <section>
-            <h2>DONT CALL IT MVVM THIS IS MVVMVC</h2>
+            <h2>MVVM + VC</h2>
             <p>
-                One of the really nice things about Combine when compared to RxSwift is that the API is much simpler than RxSwift's. The simplicity does introduce a drawback however - we need to import CombineExt to provide some operators missing from Combine in order to use Combine with UIKit effectively. Nonetheless our code is going to look a lot cleaner thanks to the integration with Foundation. As with RxSwift and RxCocoa Apple does not provide default publishers for UIKit control events so we will need to add CombineCocoa to our project as well.
+                We can't accurately call this pattern MVVM becuase it's more like Model-View-ViewModel-ViewController. The ViewController is responsible for connecting the ViewModel to the Views as well as managing the navigation stack which is exactly what UIViewControllers are supposed to do!
             </p>
             <p>
                 Take a look at the ViewModel implementation below as now is a good time to review some rules<SideNote>The ViewModel cannot import UIKit and will never subscribe to any publishers.</SideNote> to help enforce seperation of concerns and prevent side effects.
             </p>
-            <Code snippet={`import CombineExt
+            <Code snippet={`import Combine
+import CombineExt
 
 class ViewModel {
-
-    //MARK: - OUTPUTS
+    
     let validatedUsername: Driver<Validation>
     let validatedPassword: Driver<Validation>
     let enabled: Driver<Bool>
     let loggedIn: Driver<Response>
-
-    //MARK: - INPUTS
-    init(
-        username: Driver<String>,
-        password: Driver<String>,
-        login: AnyPublisher<Void, Never>
-    ) {
-
-        validatedUsername = username.flatMapLatest {
-            Validator.shared.username(username: $0)
-        }.driver(onErrorJustReturn: .failed("Invalid username."))
-
-        validatedPassword = password.flatMapLatest {
-            Validator.shared.password(password: $0)
-        }.driver(onErrorJustReturn: .failed("Invalid password"))
-
-        let combined = Publishers.CombineLatest(validatedUsername, validatedPassword)
-
-        enabled = combined.flatMapLatest { username, password -> Driver<Bool> in
-            if case (.success, .success) = (username, password) {
-                return Just(true).eraseToAnyPublisher()
-            }
-            return Just(false).eraseToAnyPublisher()
-        }.driver(onErrorJustReturn: false)
-
-        loggedIn = login.withLatestFrom(Publishers.CombineLatest(username, password))
-            .flatMapLatest {
-                Network.shared.login(username: $0, password: $1)
-            }.eraseToAnyPublisher()
-    }
-}
 `} dataline=''>
             <MarginNote>
                 <br />
             </MarginNote>
         </Code>
-        <p>
 
+        <p>
+            We initialize the ViewModel with out IBOutlet driver parameters.
         </p>
-        <Code snippet={`class ViewController: UIViewController {
+        <Code snippet={`init(
+    username: Driver<String>,
+    password: Driver<String>,
+    login: AnyPublisher<Void, Never>
+) {
+    validatedUsername = username.flatMapLatest {
+        Validator.shared.username(username: $0)
+    }.driver(onErrorJustReturn: .failed("Invalid username."))
     
-    //MARK: - IBOutlets
+    validatedPassword = password.flatMapLatest {
+        Validator.shared.password(password: $0)
+    }.driver(onErrorJustReturn: .failed("Invalid password"))
+`} dataline='1,6,10'>
+            <MarginNote>
+                <br />
+            </MarginNote>
+        </Code>
+        <p></p>
+        <Code snippet={`    let combined = Publishers.CombineLatest(
+        validatedUsername,
+        validatedPassword
+    )
+
+    enabled = combined
+        .flatMapLatest { username, password -> Just<Bool> in
+            if case (.success, .success) = (username, password) {
+                return Just(true)
+            }
+            return Just(false)
+        }.driver(onErrorJustReturn: false)
+
+    let combinedCredentials = Publishers
+        .CombineLatest(
+            username,
+            password
+        )
+
+    loggedIn = login.withLatestFrom(combinedCredentials)
+        .flatMapLatest {
+            Network.shared.login(username: $0, password: $1)
+        }.driver()`} dataline='1,6,14,20'>
+            <MarginNote>
+                <br />
+            </MarginNote>
+        </Code>
+        <p>
+            The ViewModel isn't too much different than last time except now it is significantly simpler. Define the outputs, connect the inputs and subscribe in the ViewController. Bish bash bosh, next thing you know, Robert's your father's brother.
+        </p>
+
+        <p>
+            One thing we wont be implementing here is the drive function itself which serves as a type erased replacement for subscribe in RxSwift. Combine's built-in type erasure has already made our API boundaries tidy and easy to work with.
+        </p>
+
+        <Code snippet={`import CombineCocoa
+
+class ViewController: UIViewController {
+    
     @IBOutlet weak var username: UITextField!
     @IBOutlet weak var password: UITextField!
     @IBOutlet weak var login: UIButton!
+
+    var bag = Bag()
 
     lazy var viewModel: ViewModel = {
         ViewModel(
@@ -212,22 +250,22 @@ class ViewModel {
             login: login.tapPublisher)
     }()
 
-}`}>
+}`} dataline='5,6,7,9,11'>
             <MarginNote> </MarginNote> 
         </Code>
-
-        <Code snippet={`func bind() {
-    viewModel.validatedUsername
-        .sink { [weak self] validation in
-            if case .failed(let message) = validation {
-                self?.usernameError.text = message
-                self?.usernameError.isHidden = false
-            } else {
-                self?.usernameError.isHidden = true
-            }
+        <p>
+            Back in our ViewController we can start to connect the ViewModel outputs to the Views.
+        </p>
+        <Code snippet={`viewModel.validatedUsername
+    .sink { [weak self] validation in
+        if case .failed(let message) = validation {
+            self?.usernameError.text = message
+            self?.usernameError.isHidden = false
+        } else {
+            self?.usernameError.isHidden = true
         }
-        .store(in: &bag)
-    
+    }.store(in: &bag)
+
     viewModel.validatedPassword
         .sink { [weak self] validation in
             if case .failed(let message) = validation {
@@ -236,22 +274,35 @@ class ViewModel {
             } else {
                 self?.passwordError.isHidden = true
             }
-        }.store(in: &bag)
-
-    viewModel.enabled.sink { [weak self] enabled in
-        self?.login.isEnabled = enabled
-    }.store(in: &bag)
-
-    viewModel.loggedIn.sink { [weak self] response in
-        if case .success = response {
-            self?.performSegue(withIdentifier: "LOGGEDIN", sender: nil)
-        }
-    }.store(in: &bag)
-}`}>
-            <MarginNote> </MarginNote> 
+    }.store(in: &bag)`} dataline=''>
+            <MarginNote>
+                Since the ViewModel outputs are all Drivers we can rest assured that our subscriptions will be received on the main thread.
+            </MarginNote> 
         </Code>
+
+        <p>
+            Now we can connect the login request outlets and add some button mashing prevention so the user doesn't make repeat requests if they fat thumb the submit button while a request is already in-flight.
+        </p> 
+        <Code snippet={`viewModel.enabled.sink { [weak self] enabled in
+    self?.login.isEnabled = enabled
+}.store(in: &bag)
+
+viewModel.loggedIn.sink { [weak self] response in
+    if case .success = response {
+        self?.performSegue(withIdentifier: "LOGGEDIN", sender: nil)
+    }
+}.store(in: &bag)`} dataline='2'>
+            <MarginNote>As always, don't forget to use weak self, put the subscriptions in the bag, and call your bind function in viewDidLoad.</MarginNote> 
+        </Code>
+
         </section>
 
+        <section>
+            <h2>IN THE BAG</h2>
+            <p>
+                Until next time ;)
+            </p>
+        </section>
         <section>
             <h3>Acknowledgements</h3>
             <p>
@@ -261,6 +312,9 @@ class ViewModel {
                  Syntax by <Link href="https://prismjs.com/">PrismJS</Link>
             </p>
         </section>
+        <footer>
+        <em>Copyright © 2021 Scott Orlyck. All rights reserved.</em>
+        </footer>
     </article>
 )
 

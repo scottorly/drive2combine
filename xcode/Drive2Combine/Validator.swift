@@ -13,23 +13,23 @@ class Validator {
 
     func validateUsername(username: String) -> Validation {
         if username.isEmpty {
-            return .failed("")
+            return .failed("Username required.")
         }
         return .success
     }
 
     func validatePassword(password: String) -> Validation {
         if password.isEmpty {
-            return .failed("")
+            return .failed("Password required.")
         }
         return .success
     }
 
-    func username(username: String) -> AnyPublisher<Validation, Never> {
-        Just(validateUsername(username: username)).eraseToAnyPublisher()
+    func username(username: String) -> Just<Validation> {
+        Just(validateUsername(username: username))
     }
 
-    func password(password: String) -> AnyPublisher<Validation, Never> {
-        Just(validatePassword(password: password)).eraseToAnyPublisher()
+    func password(password: String) -> Just<Validation> {
+        Just(validatePassword(password: password))
     }
 }
