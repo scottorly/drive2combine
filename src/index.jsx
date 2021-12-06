@@ -122,6 +122,8 @@ extension Publisher {
     }
 }`} dataline={'3-4,8-12'}>
                 <MarginNote id='b'>
+                    Lines 3-4: Some typealias conveniences.
+                    <br />
                     Lines 8-9: Catch and return an Empty publisher to convert the error type to Never.
                     <br />
                     Line 11: Share and replay the last element.
