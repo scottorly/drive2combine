@@ -101,13 +101,12 @@ const blog = (
                 One of the main drivers<SideNote>I am so sorry.</SideNote> of the RxSwift Driver trait was to help make dealing with type inference across API boundaries less problematic. Combine's convenient <Link href={`https://developer.apple.com/documentation/combine/just/erasetoanypublisher()`}>eraseToAnyPublisher</Link> API makes this aspect of the driver trait redundant however it is instructive to walk through the implementation with Combine and the result leaves us with some easily re-usable Rx patterns.
             </p>
             <p>
-                One of the nice things about Combine compared to RxSwift is that the API is much simpler. The primary drawback of this simplicity is that we will need to import CombineExt to provide some operators we need for this architecture pattern to be successful. Nonetheless our code is going to look a lot cleaner thanks to the Combine's integration with Foundation. Apple does not provide default publishers for UIKit control events so we will need to add CombineCocoa to our project as well.
+                One of the nice things about Combine compared to RxSwift is that the API is much simpler. The primary drawback of this simplicity is that we will need to import CombineExt to provide some operators we need for this architecture pattern to be successful. Nonetheless our code is going to look a lot cleaner thanks to Combine's integration with Foundation. Apple does not provide default publishers for UIKit control events so we will need to add CombineCocoa to our project as well.
             </p>
             <p>
                 Below are two extensions to Publisher to fulfill our requirements for a Driver. The first demonstrates how to use an <Link href='https://developer.apple.com/documentation/combine/empty'>Empty</Link> publisher to convert a Publisher error type to Never.
             </p>
-            <Code snippet={`import Combine
-import CombineExt
+            <Code snippet={`import CombineExt
                 
 typealias Driver<T> = AnyPublisher<T, Never>
 typealias Bag = Set<AnyCancellable>
@@ -121,7 +120,7 @@ extension Publisher {
         .receive(on: RunLoop.main)
         .eraseToAnyPublisher()
     }
-}`} dataline={'8-12'}>
+}`} dataline={'3-4,8-12'}>
                 <MarginNote id='b'>
                     Lines 8-9: Catch and return an Empty publisher to convert the error type to Never.
                     <br />
@@ -281,7 +280,7 @@ class ViewController: UIViewController {
         </Code>
 
         <p>
-            Now we can connect the login request outlets and add some button mashing prevention so the user doesn't make repeat requests if they fat thumb the submit button while a request is already in-flight.
+            Now we can connect the login button enabled state and the request result outlets.
         </p> 
         <Code snippet={`viewModel.enabled.sink { [weak self] enabled in
     self?.login.isEnabled = enabled
@@ -291,7 +290,7 @@ viewModel.loggedIn.sink { [weak self] response in
     if case .success = response {
         self?.performSegue(withIdentifier: "LOGGEDIN", sender: nil)
     }
-}.store(in: &bag)`} dataline='2'>
+}.store(in: &bag)`}>
             <MarginNote>As always, don't forget to use weak self, put the subscriptions in the bag, and call your bind function in viewDidLoad.</MarginNote> 
         </Code>
 
