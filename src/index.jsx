@@ -22,7 +22,7 @@ const metas = <>
 const Code = ({ children, attributes: { snippet, dataline }}) => (
 <>
     <p>
-        {children}
+        { children }
     </p>
     <figure className={styles.small}>
             <pre data-line={dataline} >
@@ -179,7 +179,7 @@ class ViewModel {
         </Code>
 
         <p>
-            We initialize the ViewModel with out IBOutlet driver parameters.
+            Initialize the ViewModel with the IBOutlet drivers.
         </p>
         <Code snippet={`init(
     username: Driver<String>,
@@ -301,7 +301,7 @@ viewModel.loggedIn.sink { [weak self] response in
         <section>
             <h2>IN THE BAG</h2>
             <p>
-                Until next time ;)
+                Next time we'll explore async/await ;)
             </p>
         </section>
         <section>

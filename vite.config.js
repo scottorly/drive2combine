@@ -4,6 +4,7 @@ export default {
       generateScopedName: (name) => name
     }
   },
+  base: '/drive2combine/',
   build: {
     outDir: 'docs'
   },
