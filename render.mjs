@@ -17,7 +17,7 @@ import { exit } from 'process'
   const page = await browser.newPage()
 
   try {
-    await page.goto('http://localhost:8080/taskmaster', { waitUntil: 'networkidle0' })
+    await page.goto('http://localhost:8080/drive2combine', { waitUntil: 'networkidle0' })
  
   } catch (err) {
     console.error(err)
